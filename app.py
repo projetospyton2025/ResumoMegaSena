@@ -3,13 +3,13 @@ from flask import Flask, render_template
 import requests
 import json
 from datetime import datetime
-import locale
+# import locale
 import os
 
 app = Flask(__name__)
 
 # Configurar localização para português brasileiro
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+# locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def format_currency(value):
     try:
