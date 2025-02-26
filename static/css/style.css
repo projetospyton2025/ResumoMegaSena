@@ -147,6 +147,9 @@ body {
     font-size: 1.1em;
     margin-top: 5px;
 }
+.concurso-numero {
+    color: #e91e63; /* Cor rosa/magenta que contrasta com o verde usado no resto do site */
+}
 
 @media (max-width: 1200px) {
     .grid-container {

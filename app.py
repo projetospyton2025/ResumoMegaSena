@@ -5,6 +5,8 @@ import json
 from datetime import datetime
 # import locale
 import os
+# Adicione após as importações existentes:
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -71,6 +73,7 @@ def get_concurso(numero=None):
         print(f"Erro ao buscar concurso {numero}: {str(e)}")
         return None
 
+# Na rota index(), modifique para passar a nova função para o template:
 @app.route('/')
 def index():
     try:
@@ -88,10 +91,27 @@ def index():
             if concurso:
                 concursos.append(concurso)
                 
-        return render_template('index.html', concursos=concursos, format_currency=format_currency)
+        return render_template('index.html', concursos=concursos, format_currency=format_currency, get_weekday=get_weekday)
         
     except Exception as e:
         return render_template('error.html', error="Erro: " + str(e))
+
+
+# Adicione esta nova função para obter o dia da semana:
+def get_weekday(date_str):
+    try:
+        # Converter string de data para objeto datetime
+        data = datetime.strptime(date_str, '%d/%m/%Y')
+        
+        # Dias da semana em português
+        dias_semana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+        
+        # Retornar o dia da semana formatado (0 = Segunda, 1 = Terça, etc)
+        return dias_semana[data.weekday()]
+    except Exception as e:
+        print(f"Erro ao obter dia da semana: {str(e)}")
+        return ""
+
 
 
 """

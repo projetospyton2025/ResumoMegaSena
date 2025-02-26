@@ -17,10 +17,17 @@
         <div class="grid-container">
             {% for sorteio in concursos %}
             <div class="concurso-card">
-                <div class="card-header">
+                <!--<div class="card-header">
                     <h3>Concurso {{ sorteio.numero }}</h3>
                     <p class="data">{{ sorteio.data }}</p>
                 </div>
+				-->
+				<div class="card-header">
+					<h3>Concurso <span class="concurso-numero">{{ sorteio.numero }}</span></h3>
+					<p class="data">{{ get_weekday(sorteio.data) }} - {{ sorteio.data }}</p>
+				</div>
+				
+				
 
                 <div class="numeros">
                     {% for numero in sorteio.numeros %}
@@ -65,10 +72,17 @@
                 </div>
 
                 {% if loop.first %}
+				
+				<!--
                 <div class="proximo-sorteio">
                     <p><i class="fas fa-calendar-alt"></i> Próximo: {{ sorteio.proximo_concurso.data }}</p>
                     <p class="estimativa">R$ {{ format_currency(sorteio.proximo_concurso.estimativa_premio) }}</p>
                 </div>
+				-->
+				<div class="proximo-sorteio">
+					<p><i class="fas fa-calendar-alt"></i> Próximo: {{ sorteio.proximo_concurso.data }} ({{ sorteio.proximo_concurso.numero }})</p>
+					<p class="estimativa">R$ {{ format_currency(sorteio.proximo_concurso.estimativa_premio) }}</p>
+				</div>
                 {% endif %}
             </div>
             {% endfor %}
