@@ -12,7 +12,6 @@
         <div class="header">
             <h1>Mega-Sena</h1>
             <h2>Últimos Resultados</h2>
-            <p>teste</p>
         </div>
         <div class="grid-container">
             {% for sorteio in concursos %}
