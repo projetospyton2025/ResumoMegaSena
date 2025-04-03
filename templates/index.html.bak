@@ -1,0 +1,83 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados Mega-Sena</title>
+    <script src="https://kit.fontawesome.com/afb02bf9ac.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css?v=2.0') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mega-Sena</h1>
+            <h2>Últimos Resultados</h2>
+        </div>
+        <div class="grid-container">
+            {% for sorteio in concursos %}
+            <div class="concurso-card">
+
+				<div class="card-header">
+					<h3>Concurso <span class="concurso-numero">{{ sorteio.numero }}</span></h3>
+					<p class="data">{{ get_weekday(sorteio.data) }} - {{ sorteio.data }}</p>
+				</div>
+				
+				
+
+                <div class="numeros">
+                    {% for numero in sorteio.numeros %}
+                    <div class="numero">{{ "%02d"|format(numero) }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="status-premio">
+                    <p class="acumulou-text {% if sorteio.acumulou %}acumulado{% endif %}">
+                        {{ "ACUMULOU!" if sorteio.acumulou else "PREMIADO!" }}
+                    </p>
+                    <p class="premio-principal">
+                        {% if sorteio.acumulou %}
+                        Prêmio estimado: R$ {{ format_currency(sorteio.proximo_concurso.estimativa_premio) }}
+                        {% else %}
+                        {{ sorteio.ganhadores.sena }} ganhador(es) - R$ {{ format_currency(sorteio.premios.sena) }}
+                        {% endif %}
+                    </p>
+                </div>
+
+                <div class="premiacoes">
+                    <div class="premiacao-item">
+                        <i class="fas fa-trophy"></i>
+                        <span>Sena: {{ sorteio.ganhadores.sena }}</span>
+                        <span>R$ {{ format_currency(sorteio.premios.sena) }}</span>
+                    </div>
+                    <div class="premiacao-item">
+                        <i class="fas fa-star"></i>
+                        <span>Quina: {{ sorteio.ganhadores.quina }}</span>
+                        <span>R$ {{ format_currency(sorteio.premios.quina) }}</span>
+                    </div>
+                    <div class="premiacao-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Quadra: {{ sorteio.ganhadores.quadra }}</span>
+                        <span>R$ {{ format_currency(sorteio.premios.quadra) }}</span>
+                    </div>
+                </div>
+
+                <div class="local">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>{{ sorteio.local_sorteio }}</span>
+                </div>
+
+                {% if loop.first %}
+
+				<div class="proximo-sorteio">
+					<p><i class="fas fa-calendar-alt"></i> Próximo: {{ sorteio.proximo_concurso.data }} ({{ sorteio.proximo_concurso.numero }})</p>
+					<p class="estimativa">R$ {{ format_currency(sorteio.proximo_concurso.estimativa_premio) }}</p>
+				</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+
+</body>
+</html>
