@@ -1,10 +1,54 @@
+Concurso 2833
+25/02/2025
+
+01
+03
+13
+16
+36
+56
+PREMIADO!
+
+1 ganhador(es) - R$ 131.361.519,85
+
+altere a cor do concurso para uma cor que fique diferente do texto Concurso
+adicione antes da data "25/02/2025" o dia da semana exemplo Sab - 25/02/2025
+
+
+Próximo: 27/02/2025
+R$ 3.500.000,00
+
+aqui adicione depois da data "27/02/2025" (o numero do concurso)
+
+///////////////////////////////////////////////////////////////
+
+Diretório: I:\Meu Drive\LoteriasCaixaSites\Loterias-Resumo\ResumoMegaSena
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d-----        26/02/2025     07:07                Requisitos
+d-----        23/02/2025     11:34                templates
+d-----        23/02/2025     09:34                static
+d-----        23/02/2025     09:34                venv
+------        23/02/2025     08:41           1096 LICENSE
+------        23/02/2025     08:41             17 README.md
+------        23/02/2025     10:15             65 requirements.txt
+------        23/02/2025     11:47           3601 app.py
+
+
+
+Flask==2.0.1
+Werkzeug==2.0.1
+Jinja2==3.0.1
+requests==2.31.0
 
 
 # app.py
 from flask import Flask, render_template
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 # import locale
 import os
 
@@ -12,11 +56,6 @@ app = Flask(__name__)
 
 # Configurar localização para português brasileiro
 # locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-
-# APIs disponíveis
-# A API da Caixa está funcionando e deve ser a primeira opção
-API_CAIXA = 'https://servicebus2.caixa.gov.br/portaldeloterias/api/megasena'
-API_HEROKU = 'https://loteriascaixa-api.herokuapp.com/api'  # API do Heroku como segunda opção
 
 def format_currency(value):
     try:
@@ -39,351 +78,80 @@ def format_currency(value):
     except:
         return '0,00'
 
-def get_concurso_heroku(numero=None):
-    """Tenta obter dados da API do Heroku"""
-    try:
-        if numero is not None:
-            url = f'{API_HEROKU}/megasena/{numero}'
-        else:
-            url = f'{API_HEROKU}/megasena/latest'
-        
-        print(f"Tentando acessar URL Heroku: {url}")
-        response = requests.get(url, timeout=10)
-        print(f"Status da resposta Heroku: {response.status_code}")
-        
-        if response.status_code != 200:
-            print(f"Erro na API do Heroku: Status {response.status_code}")
-            return None
-            
-        try:
-            data = response.json()
-            
-            # Verificar se os campos obrigatórios existem
-            campos_requeridos = ['concurso', 'data', 'dezenas', 'acumulou', 'local', 'premiacoes',
-                                'dataProximoConcurso', 'proximoConcurso', 'valorEstimadoProximoConcurso']
-            
-            for campo in campos_requeridos:
-                if campo not in data:
-                    print(f"API Heroku: Campo obrigatório '{campo}' ausente na resposta")
-                    return None
-                    
-            try:
-                premiacoes = {premio['descricao']: premio for premio in data['premiacoes']}
-                
-                # Verificar se existem todas as premiações necessárias
-                premiacoes_requeridas = ['6 acertos', '5 acertos', '4 acertos']
-                for p in premiacoes_requeridas:
-                    if p not in premiacoes:
-                        print(f"API Heroku: Premiação '{p}' ausente na resposta")
-                        return None
-                        
-                return {
-                    'numero': int(data['concurso']),
-                    'data': data['data'],
-                    'numeros': [int(num) for num in data['dezenas']],
-                    'numeros_ordem_sorteio': [int(num) for num in data.get('dezenasOrdemSorteio', data['dezenas'])],
-                    'acumulou': data['acumulou'],
-                    'local_sorteio': data['local'],
-                    'ganhadores': {
-                        'sena': int(premiacoes['6 acertos']['ganhadores']),
-                        'quina': int(premiacoes['5 acertos']['ganhadores']),
-                        'quadra': int(premiacoes['4 acertos']['ganhadores'])
-                    },
-                    'premios': {
-                        'sena': float(premiacoes['6 acertos'].get('valorPremio', 0)),
-                        'quina': float(premiacoes['5 acertos'].get('valorPremio', 0)),
-                        'quadra': float(premiacoes['4 acertos'].get('valorPremio', 0))
-                    },
-                    'proximo_concurso': {
-                        'data': data['dataProximoConcurso'],
-                        'numero': int(data['proximoConcurso']),
-                        'estimativa_premio': float(data['valorEstimadoProximoConcurso'])
-                    }
-                }
-            except Exception as e:
-                print(f"Erro ao processar dados da API Heroku: {str(e)}")
-                return None
-        except Exception as e:
-            print(f"Erro ao carregar JSON da API Heroku: {str(e)}")
-            return None
-    except Exception as e:
-        print(f"Erro API Heroku para concurso {numero}: {str(e)}")
-        return None
-
-def get_concurso_caixa(numero=None):
-    """Tenta obter dados da API da Caixa"""
-    try:
-        # Para a API da Caixa, a URL base é a mesma, mas podemos adicionar o parâmetro concurso
-        url = API_CAIXA
-        if numero is not None:
-            url = f"{url}?concurso={numero}"
-        
-        print(f"Tentando acessar URL Caixa: {url}")
-        response = requests.get(url, timeout=10)
-        print(f"Status da resposta Caixa: {response.status_code}")
-        
-        if response.status_code != 200:
-            print(f"Erro na API da Caixa: Status {response.status_code}")
-            return None
-            
-        try:
-            data = response.json()
-            
-            # A estrutura da API da Caixa é diferente da API do Heroku
-            try:
-                # Obter as dezenas ordenadas
-                dezenas_ordenadas = [int(num) for num in data.get('listaDezenas', [])]
-                if not dezenas_ordenadas and 'dezenasSorteadasOrdemSorteio' in data:
-                    dezenas_ordenadas = [int(num) for num in data.get('dezenasSorteadasOrdemSorteio', [])]
-                
-                # Obter as dezenas na ordem do sorteio
-                dezenas_sorteio = [int(num) for num in data.get('dezenasSorteadasOrdemSorteio', [])]
-                if not dezenas_sorteio:
-                    dezenas_sorteio = dezenas_ordenadas
-                
-                # Processar estrutura de prêmios
-                premiacoes = data.get('listaRateioPremio', [])
-                
-                # Organizar os prêmios por faixa
-                premios_por_faixa = {p.get('faixa'): p for p in premiacoes}
-                
-                # Data formatada
-                data_apuracao = data.get('dataApuracao', '')
-                if data_apuracao:
-                    try:
-                        data_formatada = datetime.strptime(data_apuracao, '%d/%m/%Y').strftime('%d/%m/%Y')
-                    except:
-                        data_formatada = data_apuracao
-                else:
-                    data_formatada = datetime.now().strftime('%d/%m/%Y')
-                
-                # Data do próximo concurso
-                data_proximo = data.get('dataProximoConcurso', '')
-                if not data_proximo:
-                    data_proximo = (datetime.now() + timedelta(days=3)).strftime('%d/%m/%Y')
-                
-                # Verificar se acumulou (quando não há ganhadores na faixa 1 - 6 acertos)
-                sena_ganhadores = 0
-                if 1 in premios_por_faixa:
-                    sena_ganhadores = premios_por_faixa[1].get('numeroDeGanhadores', 0)
-                acumulou = sena_ganhadores == 0
-                
-                # Valores dos prêmios por faixa
-                sena_valor = premios_por_faixa.get(1, {}).get('valorPremio', 0) 
-                quina_valor = premios_por_faixa.get(2, {}).get('valorPremio', 0)
-                quadra_valor = premios_por_faixa.get(3, {}).get('valorPremio', 0)
-                
-                # Número de ganhadores por faixa
-                quina_ganhadores = premios_por_faixa.get(2, {}).get('numeroDeGanhadores', 0)
-                quadra_ganhadores = premios_por_faixa.get(3, {}).get('numeroDeGanhadores', 0)
-                
-                return {
-                    'numero': int(data.get('numero', 0)),
-                    'data': data_formatada,
-                    'numeros': dezenas_ordenadas,
-                    'numeros_ordem_sorteio': dezenas_sorteio,
-                    'acumulou': acumulou,
-                    'local_sorteio': data.get('localSorteio', 'Espaço da Sorte'),
-                    'ganhadores': {
-                        'sena': int(sena_ganhadores),
-                        'quina': int(quina_ganhadores),
-                        'quadra': int(quadra_ganhadores)
-                    },
-                    'premios': {
-                        'sena': float(sena_valor),
-                        'quina': float(quina_valor),
-                        'quadra': float(quadra_valor)
-                    },
-                    'proximo_concurso': {
-                        'data': data_proximo,
-                        'numero': int(data.get('numeroConcursoProximo', 0)),
-                        'estimativa_premio': float(data.get('valorEstimadoProximoConcurso', 0))
-                    }
-                }
-            except Exception as e:
-                print(f"Erro ao processar dados da API da Caixa: {str(e)}")
-                return None
-        except Exception as e:
-            print(f"Erro ao carregar JSON da API da Caixa: {str(e)}")
-            return None
-    except Exception as e:
-        print(f"Erro API Caixa para concurso {numero}: {str(e)}")
-        return None
-
 def get_concurso(numero=None):
-    """Tenta obter concurso, primeiro da API da Caixa, depois da API do Heroku"""
     try:
-        # Garantir que numero seja None ou um inteiro
-        if numero is not None:
-            try:
-                numero = int(numero)
-            except (ValueError, TypeError):
-                print(f"Número de concurso inválido: {numero}")
-                numero = None
+        if numero:
+            url = f'https://loteriascaixa-api.herokuapp.com/api/megasena/{numero}'
+        else:
+            url = 'https://loteriascaixa-api.herokuapp.com/api/megasena/latest'
         
-        print(f"Buscando concurso {numero if numero is not None else 'mais recente'}")
+        response = requests.get(url)
+        data = response.json()
         
-        # Tenta primeiro a API da Caixa (já que está funcionando conforme demonstrado)
-        print("Tentando API da Caixa...")
-        resultado = get_concurso_caixa(numero)
-        if resultado:
-            print("Sucesso com API da Caixa")
-            return resultado
-            
-        # Se falhar, tenta a API do Heroku como segunda opção
-        print("API da Caixa falhou. Tentando API do Heroku...")
-        resultado = get_concurso_heroku(numero)
-        if resultado:
-            print("Sucesso com API do Heroku")
-            return resultado
-            
-        print("Ambas as APIs falharam")
-    except Exception as e:
-        print(f"Erro em get_concurso: {str(e)}")
-        # Continue para fornecer dados mockados
-    
-    # Se ambas falharem, retorna um conjunto de dados mockados para evitar quebrar o site
-    # Isso é útil para desenvolvimento e testes quando as APIs estão fora do ar
-    print("Gerando dados de mock como último recurso")
-    
-    # Garantir que numero seja um inteiro válido
-    numero_concurso = 2600
-    if numero is not None:
-        try:
-            numero_concurso = int(numero)
-        except (ValueError, TypeError):
-            print(f"Erro ao converter número do concurso: {numero}")
-            
-    # Gerar concurso mock
-    return {
-        'numero': numero_concurso,
-        'data': datetime.now().strftime('%d/%m/%Y'),
-        'numeros': [10, 20, 30, 40, 50, 60],
-        'numeros_ordem_sorteio': [10, 20, 30, 40, 50, 60],
-        'acumulou': True,
-        'local_sorteio': 'Espaço da Sorte (MOCK - APIs indisponíveis)',
-        'ganhadores': {
-            'sena': 0,
-            'quina': 50,
-            'quadra': 3000
-        },
-        'premios': {
-            'sena': 0,
-            'quina': 50000.00,
-            'quadra': 1000.00
-        },
-        'proximo_concurso': {
-            'data': (datetime.now() + timedelta(days=3)).strftime('%d/%m/%Y'),
-            'numero': numero_concurso + 1,
-            'estimativa_premio': 150000000.00
+        premiacoes = {premio['descricao']: premio for premio in data['premiacoes']}
+        
+        return {
+            'numero': data['concurso'],
+            'data': data['data'],
+            'numeros': [int(num) for num in data['dezenas']],
+            'numeros_ordem_sorteio': [int(num) for num in data['dezenasOrdemSorteio']],
+            'acumulou': data['acumulou'],
+            'local_sorteio': data['local'],
+            'ganhadores': {
+                'sena': premiacoes['6 acertos']['ganhadores'],
+                'quina': premiacoes['5 acertos']['ganhadores'],
+                'quadra': premiacoes['4 acertos']['ganhadores']
+            },
+            'premios': {
+                'sena': float(premiacoes['6 acertos']['valorPremio']),
+                'quina': float(premiacoes['5 acertos']['valorPremio']),
+                'quadra': float(premiacoes['4 acertos']['valorPremio'])
+            },
+            'proximo_concurso': {
+                'data': data['dataProximoConcurso'],
+                'numero': data['proximoConcurso'],
+                'estimativa_premio': float(data['valorEstimadoProximoConcurso'])
+            }
         }
-    }
+    except Exception as e:
+        print(f"Erro ao buscar concurso {numero}: {str(e)}")
+        return None
 
 @app.route('/')
 def index():
     try:
-        # Buscar exatamente 6 resultados (concursos) como no código original
-        concursos = []
-        
         # Buscar o último concurso primeiro
         ultimo_concurso = get_concurso()
         if not ultimo_concurso:
-            # Se não conseguiu nada, criar um concurso mock como último recurso
-            ultimo_concurso = {
-                'numero': 2600,
-                'data': datetime.now().strftime('%d/%m/%Y'),
-                'numeros': [10, 20, 30, 40, 50, 60],
-                'numeros_ordem_sorteio': [10, 20, 30, 40, 50, 60],
-                'acumulou': True,
-                'local_sorteio': 'Espaço da Sorte (MOCK - APIs indisponíveis)',
-                'ganhadores': {'sena': 0, 'quina': 50, 'quadra': 3000},
-                'premios': {'sena': 0, 'quina': 50000.00, 'quadra': 1000.00},
-                'proximo_concurso': {
-                    'data': (datetime.now() + timedelta(days=3)).strftime('%d/%m/%Y'),
-                    'numero': 2601,
-                    'estimativa_premio': 150000000.00
-                }
-            }
-        
-        concursos.append(ultimo_concurso)
+            raise Exception("Não foi possível obter o último concurso")
             
-        # Garantir que número_atual seja um inteiro válido
-        numero_atual = int(ultimo_concurso.get('numero', 2600))
+        # Buscar os 5 concursos anteriores
+        numero_atual = ultimo_concurso['numero']
+        concursos = [ultimo_concurso]
         
-        # Buscar concursos anteriores até ter 6 no total (ou seja, buscar mais 5)
-        max_tentativas = 15  # Aumentado para garantir encontrar concursos suficientes
-        i = 1
-        while len(concursos) < 6 and i <= max_tentativas:
-            try:
-                concurso_num = numero_atual - i
-                if concurso_num > 0:
-                    concurso = get_concurso(concurso_num)
-                    if concurso:
-                        concursos.append(concurso)
-                        print(f"Adicionado concurso {concurso_num}, total agora: {len(concursos)}")
-                    else:
-                        print(f"Concurso {concurso_num} não encontrado")
-            except Exception as e:
-                print(f"Erro ao buscar concurso {numero_atual - i}: {str(e)}")
-            i += 1
-        
-        print(f"Total de concursos obtidos: {len(concursos)}")
+        for i in range(1, 6):
+            concurso = get_concurso(numero_atual - i)
+            if concurso:
+                concursos.append(concurso)
                 
-        return render_template('index.html', concursos=concursos, format_currency=format_currency, get_weekday=get_weekday)
-                
-        return render_template('index.html', concursos=concursos, format_currency=format_currency, get_weekday=get_weekday)
+        return render_template('index.html', concursos=concursos, format_currency=format_currency)
         
     except Exception as e:
         return render_template('error.html', error="Erro: " + str(e))
 
 
-# Adicione esta nova função para obter o dia da semana:
-def get_weekday(date_str):
-    try:
-        # Converter string de data para objeto datetime
-        data = datetime.strptime(date_str, '%d/%m/%Y')
-        
-        # Dias da semana em português
-        dias_semana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
-        
-        # Retornar o dia da semana formatado (0 = Segunda, 1 = Terça, etc)
-        return dias_semana[data.weekday()]
-    except Exception as e:
-        print(f"Erro ao obter dia da semana: {str(e)}")
-        return ""
+"""
+if __name__ == '__main__':
+    app.run(debug=True)
+
+"""
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 	
-	Flask==2.0.1
-Werkzeug==2.0.1
-Jinja2==3.0.1
-requests==2.31.0
-
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erro - Mega-Sena</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Erro</h1>
-        </div>
-        <div class="card">
-            <h3>Ocorreu um erro</h3>
-            <p>{{ error }}</p>
-            <p><a href="/">Tentar novamente</a></p>
-        </div>
-    </div>
-</body>
-</html>
-
-<!DOCTYPE html>
+	<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -397,18 +165,15 @@ requests==2.31.0
         <div class="header">
             <h1>Mega-Sena</h1>
             <h2>Últimos Resultados</h2>
-            <p>teste</p>
         </div>
+
         <div class="grid-container">
             {% for sorteio in concursos %}
             <div class="concurso-card">
-
-				<div class="card-header">
-					<h3>Concurso <span class="concurso-numero">{{ sorteio.numero }}</span></h3>
-					<p class="data">{{ get_weekday(sorteio.data) }} - {{ sorteio.data }}</p>
-				</div>
-				
-				
+                <div class="card-header">
+                    <h3>Concurso {{ sorteio.numero }}</h3>
+                    <p class="data">{{ sorteio.data }}</p>
+                </div>
 
                 <div class="numeros">
                     {% for numero in sorteio.numeros %}
@@ -453,18 +218,15 @@ requests==2.31.0
                 </div>
 
                 {% if loop.first %}
-
-				<div class="proximo-sorteio">
-					<p><i class="fas fa-calendar-alt"></i> Próximo: {{ sorteio.proximo_concurso.data }} ({{ sorteio.proximo_concurso.numero }})</p>
-					<p class="estimativa">R$ {{ format_currency(sorteio.proximo_concurso.estimativa_premio) }}</p>
-				</div>
+                <div class="proximo-sorteio">
+                    <p><i class="fas fa-calendar-alt"></i> Próximo: {{ sorteio.proximo_concurso.data }}</p>
+                    <p class="estimativa">R$ {{ format_currency(sorteio.proximo_concurso.estimativa_premio) }}</p>
+                </div>
                 {% endif %}
             </div>
             {% endfor %}
         </div>
     </div>
-
-
 </body>
 </html>
 
@@ -617,9 +379,6 @@ body {
     font-size: 1.1em;
     margin-top: 5px;
 }
-.concurso-numero {
-    color: #e91e63; /* Cor rosa/magenta que contrasta com o verde usado no resto do site */
-}
 
 @media (max-width: 1200px) {
     .grid-container {
@@ -632,13 +391,26 @@ body {
         grid-template-columns: 1fr;
     }
 }
-.instrucoes{
-    background-color: #f9f9f9; /* Fundo cinza claro */
-    border-radius: 12px; /* Bordas arredondadas */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra leve */
-    padding: 20px; /* Espaçamento interno */
-    text-align: left; /* Centraliza o texto */
-    font-family: Arial, sans-serif; /* Fonte padrão */
-    color: #333; /* Cor do texto */
-    line-height: 35px;
-}
+
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erro - Mega-Sena</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Erro</h1>
+        </div>
+        <div class="card">
+            <h3>Ocorreu um erro</h3>
+            <p>{{ error }}</p>
+            <p><a href="/">Tentar novamente</a></p>
+        </div>
+    </div>
+</body>
+</html>
